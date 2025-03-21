@@ -27,7 +27,7 @@ OctAPI provides a seamless way to explore and manage your API routes within Visu
 - **Jump to Code** – Clicking a route takes you directly to the exact line where it's defined.
 - **Quick Copy with Prefixing** – Hover over a route to reveal a copy button, with an option to specify a route prefix.
 - **Flexible Organization** – Toggle between grouping by basepath or HTTP method.
-- **Visual Enhancements** – Routes include distinct icons and colors, including special styling for `PATCH` routes.
+- **Visual Enhancements** – Routes feature distinct icons and colors for improved clarity and organization.
 - **Native Sidebar Integration** – View all detected routes directly in VS Code’s sidebar.
 - **Favorite Routes Management** – Star and persistently favorite frequently used routes, with an option to clear all favorites via a dedicated command.
 - **Postman Export Command** – Export API routes as an importable Postman JSON collection, complete with method, full path, and path parameters, organized in appropriate subfolders.
@@ -95,6 +95,9 @@ You can install OctAPI from the following sources:
 
 ## Release Notes
 
+### v0.5.2 - 2025-03-21  
+- **Optimized File Scanning**: Improved performance by scanning only relevant files, reducing unnecessary processing.
+
 ### v0.5.1 - 2025-03-15 
 - Fixed infinite loading when no routes were detected.  
 - Resolved an issue where configuration changes weren't applying properly.  
@@ -113,10 +116,6 @@ You can install OctAPI from the following sources:
 - **Postman Export Command**: Added a command that exports API routes as an importable Postman JSON collection, including method, full path, and path parameters.
 - **Koa Route Extraction**: Fixed Koa route extraction by enhancing method detection and prefix handling to avoid mistaking database calls for routes.
 - **Copy Button Bug**: Fixed an issue where the copy button would disappear after being clicked.
-
-### v0.3.0 - 2025-03-04
-- **Favorite Routes Management**: Added support for starring routes with persistence and toggle functionality, and introduced a command to clear favorite routes with updated UI and improved layout.
-- **Refactored Command Handling**: Removed unused commands for opening routes and copying route paths.
 
 ---
 

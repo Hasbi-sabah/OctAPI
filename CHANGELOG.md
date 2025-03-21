@@ -2,6 +2,10 @@
 
 All notable changes to the "OctAPI" extension will be documented in this file.
 
+## [0.5.2] - 2025-03-21
+### Added  
+- **Optimized File Scanning**: The extension now selectively scans relevant files based on predefined naming patterns for each framework. This reduces unnecessary processing, such as limiting NestJS scans to controller files instead of the entire directory.
+
 ## [0.5.1] - 2025-03-15  
 ### Fixed  
 - **Infinite Loading on Empty Return**: Resolved an issue where the extension would get stuck in a loading state if an empty result was returned.  
