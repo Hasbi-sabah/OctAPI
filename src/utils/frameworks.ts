@@ -9,26 +9,31 @@ export const frameworks: Framework[] = [
     {
         name: 'Express',
         function: extractExpressRoutes,
-        extensions: ['.js', '.ts']
+        extensions: ['.js', '.ts'],
+        includePatterns: ['**/*']
     },
     {
         name: 'NestJS',
         function: extractNestJSRoutes,
-        extensions: ['.js', '.ts']
+        extensions: ['.js', '.ts'],
+        includePatterns: ['**/*.controller.ts']
     },
     {
         name: 'Koa',
         function: extractKoaRoutes,
-        extensions: ['.js', '.ts']
+        extensions: ['.js', '.ts'],
+        includePatterns: ['**/*']
     },
     {
         name: 'Flask',
         function: extractFlaskRoutes,
-        extensions: ['.py']
+        extensions: ['.py'],
+        includePatterns: ['**/*']
     },
     {
         name: 'FastAPI',
         function: extractFastAPIRoutes,
-        extensions: ['.py']
+        extensions: ['.py'],
+        includePatterns: ['**/*']
     }
 ]

@@ -14,4 +14,5 @@ export interface Framework {
     name: string;
     function: (fileUri: vscode.Uri) => Promise<Route[]>;
     extensions: string[];
+    includePatterns: string[];
 }

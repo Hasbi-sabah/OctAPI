@@ -3,7 +3,7 @@ import * as vscode from "vscode"
 import { frameworks } from "./frameworks";
 import { Route } from "../types";
 
-export async function getFilesRecursively(directoryUri: vscode.Uri): Promise<vscode.Uri[]> {
+export async function getFilesRecursively(directoryUri: vscode.Uri, frameworkPatterns: string[]): Promise<vscode.Uri[]> {
     const fileUris: vscode.Uri[] = [];
     const directoryUris: vscode.Uri[] = [];
     const blockedDirs = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '__tests__', '__mocks__']);
@@ -27,8 +27,17 @@ export async function getFilesRecursively(directoryUri: vscode.Uri): Promise<vsc
                     directoryUris.push(fileUri);
                 }
             } else {
+                const filePath = fileUri.fsPath;
+                const relativePath = vscode.workspace.asRelativePath(fileUri);
+
+                // Skip if framework patterns exist and none match
+
+                const matchesFrameworkPattern = frameworkPatterns
+                ? frameworkPatterns.some(pattern => new RegExp(pattern.replace(/\*/g, '.*')).test(relativePath))
+                : true;
                 // Skip non-source files and common configs
-                if (!blockedFileExtensions.has(ext) &&
+                if (matchesFrameworkPattern &&
+                    !blockedFileExtensions.has(ext) &&
                     !name.startsWith('.') && // Skip dotfiles
                     !name.endsWith('.d.ts') && // Skip TypeScript declaration files
                     !name.endsWith('.min.js') && // Skip minified files
@@ -45,7 +54,7 @@ export async function getFilesRecursively(directoryUri: vscode.Uri): Promise<vsc
         while (directoryUris.length > 0) {
             const batch = directoryUris.splice(0, 10); // Process 10 dirs at a time
             const results = await Promise.all(
-                batch.map(dir => getFilesRecursively(dir))
+                batch.map(dir => getFilesRecursively(dir, frameworkPatterns))
             );
             fileUris.push(...results.flat());
         }
@@ -53,6 +62,7 @@ export async function getFilesRecursively(directoryUri: vscode.Uri): Promise<vsc
         console.error(`Error reading directory ${directoryUri.fsPath}:`, error);
     }
 
+    console.log("Files found:", fileUris.length);
     return fileUris;
 }
 
@@ -85,7 +95,7 @@ export async function getFrameworkFiles(frameworkName: string) {
         }
 
         const directoryUri = vscode.Uri.joinPath(workspaceFolder.uri, routePath);
-        const files = await getFilesRecursively(directoryUri);
+        const files = await getFilesRecursively(directoryUri, framework.includePatterns);
         return files.filter(uri =>
             uri && uri.fsPath && // Add null check
             framework.extensions.includes(path.extname(uri.fsPath).toLowerCase())
