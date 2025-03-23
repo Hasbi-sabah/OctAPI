@@ -95,6 +95,9 @@ You can install OctAPI from the following sources:
 
 ## Release Notes
 
+### v0.5.3 - 2025-03-23
+- **Fixes in Grouping & Copying**: Resolved an issue where grouping by basepath displayed the full path instead of just the path. Copying a route now correctly includes the full path.  
+
 ### v0.5.2 - 2025-03-21  
 - **Optimized File Scanning**: Improved performance by scanning only relevant files, reducing unnecessary processing.
 
@@ -110,12 +113,6 @@ You can install OctAPI from the following sources:
 
 ### v0.4.1 - 2025-03-10 
 - **Postman Export Grouping**: Routes are now grouped into subfolders based on their basepath instead of all being placed in the root folder, making API organization clearer.
-
-### v0.4.0 - 2025-03-05
-- **Enhanced FastAPI Processing**: Improved FastAPI route processing to handle router prefixes and include them in the basepath.
-- **Postman Export Command**: Added a command that exports API routes as an importable Postman JSON collection, including method, full path, and path parameters.
-- **Koa Route Extraction**: Fixed Koa route extraction by enhancing method detection and prefix handling to avoid mistaking database calls for routes.
-- **Copy Button Bug**: Fixed an issue where the copy button would disappear after being clicked.
 
 ---
 

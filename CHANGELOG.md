@@ -2,6 +2,11 @@
 
 All notable changes to the "OctAPI" extension will be documented in this file.
 
+## [0.5.3] - 2025-03-23 
+### Fixed  
+- **Grouping Display Issue**: Fixed a typo in the grouping handler that caused the full path to be displayed instead of just the path when grouping by basepath.  
+- **Copy Route Behavior**: Corrected the copy functionality to ensure that when grouping by basepath, copying a route now correctly copies the full path instead of just the path.  
+
 ## [0.5.2] - 2025-03-21
 ### Added  
 - **Optimized File Scanning**: The extension now selectively scans relevant files based on predefined naming patterns for each framework. This reduces unnecessary processing, such as limiting NestJS scans to controller files instead of the entire directory.
