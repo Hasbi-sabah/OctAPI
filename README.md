@@ -95,6 +95,10 @@ You can install OctAPI from the following sources:
 
 ## Release Notes
 
+### v0.5.4 - 2025-03-24
+- **Unified Path Handling**: Standardized route formatting across frameworks for consistency. 
+- **Initial Render Infinite Loading**: Fixed an issue causing an infinite loading screen on first render.
+
 ### v0.5.3 - 2025-03-23
 - **Fixes in Grouping & Copying**: Resolved an issue where grouping by basepath displayed the full path instead of just the path. Copying a route now correctly includes the full path.  
 
@@ -110,9 +114,6 @@ You can install OctAPI from the following sources:
 - **Automated File Retrieval for Frameworks** – A new utility streamlines file collection based on framework-specific structures, enhancing compatibility.  
 - **Improved File Filtering and Directory Handling** – Directories are now processed in batches to prevent stack overflows.  
 - **Updated Welcome Message** – Encourages users to report unsupported frameworks via a dedicated GitHub issue template.  
-
-### v0.4.1 - 2025-03-10 
-- **Postman Export Grouping**: Routes are now grouped into subfolders based on their basepath instead of all being placed in the root folder, making API organization clearer.
 
 ---
 
