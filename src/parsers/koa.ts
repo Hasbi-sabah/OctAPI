@@ -3,6 +3,7 @@ import traverse from '@babel/traverse';
 import * as t from '@babel/types';
 import * as vscode from 'vscode';
 import { Route } from '../types';
+import { normalizeExplicitPaths } from '../utils/pathUtils';
 
 export default async function extractKoaRoutes(fileUri: vscode.Uri): Promise<Route[]> {
     if (!fileUri) {
@@ -49,14 +50,14 @@ export default async function extractKoaRoutes(fileUri: vscode.Uri): Promise<Rou
                             const routePathValue = firstArg.value;
                             const routerVarName = path.node.callee.object.name;
                             const routerPrefix = routerPrefixes.get(routerVarName) || '';
-
-                            // Adding the detected route to the list
+                            const { basePath, routePath, fullPath } = normalizeExplicitPaths(routerPrefix || '', routePathValue);
                             routesList.push({
                                 method,
-                                path: routePathValue,
+                                path: routePath,
+                                basePath,
+                                fullPath,
                                 file: filePath,
-                                fileLine: path.node.loc?.start.line || 0,
-                                basePath: routerPrefix || '',
+                                fileLine: path.node.loc?.start.line || 0
                             });
                         }
                     }

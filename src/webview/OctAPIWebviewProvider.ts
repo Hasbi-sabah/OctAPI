@@ -60,12 +60,11 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
         const postmanItems = [];
         for (const [basePath, routes] of routeGroups) {
             const folderItems = routes.map(route => {
-                const fullPath = `${route.basePath}${route.path}`;
-                const postmanPath = convertPathParams(fullPath);
+                const postmanPath = convertPathParams(route.fullPath);
                 const params = postmanPath.match(/{{(\w+)}}/g)?.map(p => p.slice(2, -2)) || [];
 
                 return {
-                    name: `${route.method} ${fullPath}`,
+                    name: `${route.method} ${route.fullPath}`,
                     request: {
                         method: route.method.toUpperCase(),
                         header: [],
@@ -232,8 +231,8 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
         // Add starred status to routes
         const processedRoutes = routes.map(route => ({
             ...route,
-            routeId: `${route.method}-${route.path}-${route.file}`, // Unique ID
-            isStarred: this.starredRoutes.has(`${route.method}-${route.path}-${route.file}`)
+            routeId: `${route.method}-${route.fullPath}-${route.file}`, // Unique ID
+            isStarred: this.starredRoutes.has(`${route.method}-${route.fullPath}-${route.file}`)
         }));
 
         const html = this.getHtmlContent(processedRoutes);

@@ -3,6 +3,7 @@ import traverse from "@babel/traverse"
 import * as t from "@babel/types"
 import * as vscode from "vscode"
 import { Route } from "../types"
+import { normalizeExplicitPaths } from "../utils/pathUtils"
 
 export default async function extractExpressRoutes(fileUri: vscode.Uri): Promise<Route[]> {
     if (!fileUri) {
@@ -56,16 +57,19 @@ export default async function extractExpressRoutes(fileUri: vscode.Uri): Promise
                     t.isIdentifier(node.callee.property) &&
                     ["get", "post", "put", "delete", "patch"].includes(node.callee.property.name)
                 ) {
-                    const method = node.callee.property.name.toUpperCase()
-                    const pathValue = t.isStringLiteral(node.arguments[0]) ? node.arguments[0].value : ""
-
+                    const method = node.callee.property.name.toUpperCase();
+                    const pathValue = t.isStringLiteral(node.arguments[0]) ? node.arguments[0].value : "";
+                    
+                    const { basePath, routePath, fullPath } = normalizeExplicitPaths("", pathValue);
+                    
                     routesList.push({
                         method,
-                        path: pathValue,
-                        basePath: "",
+                        path: routePath,
+                        basePath,
+                        fullPath,
                         file: filePath,
                         fileLine: node.loc?.start.line || 0,
-                    })
+                    });
                 }
 
                 // Case 3: Track Router-based Routes (router.get(), router.post(), etc.)
@@ -76,19 +80,21 @@ export default async function extractExpressRoutes(fileUri: vscode.Uri): Promise
                     t.isIdentifier(node.callee.property) &&
                     ["get", "post", "put", "delete", "patch"].includes(node.callee.property.name)
                 ) {
-                    const method = node.callee.property.name.toUpperCase()
-                    const pathValue = t.isStringLiteral(node.arguments[0]) ? node.arguments[0].value : ""
-                    const parentRouter = node.callee.object.name
-                    const detectedBasePath = nestedRouters.get(parentRouter) || ""
-                    // console.log(`Detected nested route: ${method} ${detectedBasePath}${pathValue}`)
-
+                    const method = node.callee.property.name.toUpperCase();
+                    const pathValue = t.isStringLiteral(node.arguments[0]) ? node.arguments[0].value : "";
+                    const parentRouter = node.callee.object.name;
+                    const detectedBasePath = nestedRouters.get(parentRouter) || "";
+                    
+                    const { basePath, routePath, fullPath } = normalizeExplicitPaths(detectedBasePath, pathValue);
+                    
                     routesList.push({
                         method,
-                        path: pathValue,
-                        basePath: detectedBasePath,
+                        path: routePath,
+                        basePath,
+                        fullPath,
                         file: filePath,
                         fileLine: node.loc?.start.line || 0,
-                    })
+                    });
                 }
             },
         })

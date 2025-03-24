@@ -3,6 +3,7 @@ import traverse from "@babel/traverse";
 import * as t from "@babel/types";
 import * as vscode from "vscode";
 import { Route } from "../types";
+import { normalizeExplicitPaths } from "../utils/pathUtils";
 
 export default async function extractNestJSRoutes(fileUri: vscode.Uri): Promise<Route[]> {
     if (!fileUri) {
@@ -17,40 +18,10 @@ export default async function extractNestJSRoutes(fileUri: vscode.Uri): Promise<
         const filePath = fileUri.fsPath;
 
         traverse(ast, {
-            // Track route decorators in class methods
-            // ClassMethod(path) {
-            //     const methodDecorators = path.node.decorators || [];
-
-            //     methodDecorators.forEach((decorator) => {
-            //         if (
-            //             t.isCallExpression(decorator.expression) &&
-            //             t.isIdentifier(decorator.expression.callee) &&
-            //             ["Get", "Post", "Put", "Delete", "Patch"].includes(decorator.expression.callee.name)
-            //         ) {
-            //             const method = decorator.expression.callee.name.toUpperCase();
-            //             let pathValue = decorator.expression.arguments.length > 0 && t.isStringLiteral(decorator.expression.arguments[0])
-            //                 ? decorator.expression.arguments[0].value
-            //                 : "";
-
-            //             if (!pathValue.startsWith("/")) {
-            //                 pathValue = `/${pathValue}`;
-            //             }
-
-            //             routesList.push({
-            //                 method,
-            //                 path: pathValue,
-            //                 basePath: "", // NestJS routes are typically absolute, so basePath is empty
-            //                 file: filePath,
-            //                 fileLine: decorator.loc?.start.line || 0,
-            //             });
-            //         }
-            //     });
-            // },
-
             // Track controller decorators to determine base paths
             ClassDeclaration(path) {
                 const classDecorators = path.node.decorators || [];
-                let basePath = "";
+                let basepath = "";
 
                 classDecorators.forEach((decorator) => {
                     if (
@@ -59,9 +30,9 @@ export default async function extractNestJSRoutes(fileUri: vscode.Uri): Promise<
                         decorator.expression.arguments.length > 0 &&
                         t.isStringLiteral(decorator.expression.arguments[0])
                     ) {
-                        basePath = decorator.expression.arguments[0].value;
-                        if (!basePath.startsWith("/")) {
-                            basePath = `/${basePath}`;
+                        basepath = decorator.expression.arguments[0].value;
+                        if (!basepath.startsWith("/")) {
+                            basepath = `/${basepath}`;
                         }
                     }
                 });
@@ -82,16 +53,15 @@ export default async function extractNestJSRoutes(fileUri: vscode.Uri): Promise<
                                     ? decorator.expression.arguments[0].value
                                     : "";
 
-                                if (!pathValue.startsWith("/")) {
-                                    pathValue = `/${pathValue}`;
-                                }
+                                const { basePath, routePath, fullPath } = normalizeExplicitPaths(basepath, pathValue);
 
                                 routesList.push({
                                     method,
-                                    path: pathValue,
-                                    basePath: basePath,
+                                    path: routePath,
+                                    basePath,
                                     file: filePath,
                                     fileLine: decorator.loc?.start.line || 0,
+                                    fullPath
                                 });
                             }
                         });

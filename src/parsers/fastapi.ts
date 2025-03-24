@@ -3,6 +3,7 @@ import Parser from "tree-sitter";
 import Python from "tree-sitter-python";
 import * as vscode from "vscode";
 import { Route } from "../types";
+import { normalizeExplicitPaths } from "../utils/pathUtils";
 
 const VALID_METHODS = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]);
 
@@ -81,7 +82,7 @@ function processClassDefinition(
 
 function processFastAPIRoute(
     node: Parser.SyntaxNode,
-    basePath: string,
+    basepath: string,
     filePath: string,
     routesList: Route[],
     routerPrefixes: Map<string, string>
@@ -101,19 +102,36 @@ function processFastAPIRoute(
             routerPrefix = routerPrefixes.get(routerMatch[1])!;
         }
 
-        const fullPath = pathArg
-            ? path.join(routerPrefix, basePath, pathArg).replace(/\\/g, "/").replace(/\/+/g, "/")
-            : path.join(routerPrefix, basePath).replace(/\\/g, "/").replace(/\/+/g, "/");
+        const routepath = pathArg
+            ? path.join(routerPrefix, basepath, pathArg).replace(/\\/g, "/").replace(/\/+/g, "/")
+            : path.join(routerPrefix, basepath).replace(/\\/g, "/").replace(/\/+/g, "/");
+            
+        const { basePath, routePath, fullPath } = normalizeExplicitPaths(basepath, routepath);
 
         // Handle both direct methods and api_route
         if (decoratorName.endsWith(".api_route")) {
             const methods = getMethodsFromDecorator(decoratorCall);
             methods.forEach(method => {
-                routesList.push(createRoute(method, fullPath, basePath, filePath, decorator));
-            });
+                routesList.push({
+                    method,
+                    path: routePath,
+                    basePath,
+                    fullPath,
+                    file: filePath,
+                    fileLine: decorator.startPosition.row + 1
+                });
+                        });
         } else if (VALID_METHODS.has(decoratorName.split(".").pop()?.toUpperCase() || "")) {
             const method = decoratorName.split(".").pop()!.toUpperCase();
-            routesList.push(createRoute(method, fullPath, basePath, filePath, decorator));
+
+            routesList.push({
+                method,
+                path: routePath,
+                basePath,
+                fullPath,
+                file: filePath,
+                fileLine: decorator.startPosition.row + 1
+            });
         }
     });
 }
@@ -149,15 +167,14 @@ function processClassMethod(
             methods.push(decoratorName.split(".").pop()!.toUpperCase());
         }
 
-        const fullPath = path.join(routerPrefix, classBasePath)
-            .replace(/\\/g, "/")
-            .replace(/\/+/g, "/");
-
-        methods.forEach(method => {
+        const { basePath, routePath, fullPath } = normalizeExplicitPaths("", path.join(routerPrefix, classBasePath));
+                    
+        methods.forEach(method => {            
             routesList.push({
                 method,
-                path: fullPath,
-                basePath: "",
+                path: routePath,
+                basePath,
+                fullPath,
                 file: filePath,
                 fileLine: methodNode.startPosition.row + 1
             });
@@ -191,20 +208,4 @@ function getMethodsFromDecorator(decoratorCall: string): string[] {
         .split(",")
         .map(m => m.trim().replace(/['"]/g, "").toUpperCase())
         .filter(m => VALID_METHODS.has(m));
-}
-
-function createRoute(
-    method: string,
-    path: string,
-    basePath: string,
-    filePath: string,
-    decorator: Parser.SyntaxNode
-): Route {
-    return {
-        method,
-        path,
-        basePath,
-        file: filePath,
-        fileLine: decorator.startPosition.row + 1
-    };
 }

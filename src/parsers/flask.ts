@@ -3,6 +3,7 @@ import Parser from "tree-sitter";
 import Python from "tree-sitter-python";
 import * as vscode from "vscode";
 import { Route } from "../types";
+import { normalizeExplicitPaths } from "../utils/pathUtils";
 
 const VALID_METHODS = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]);
 
@@ -68,7 +69,7 @@ function processClassDefinition(
 
 function processFunctionRoute(
     node: Parser.SyntaxNode,
-    basePath: string,
+    basepath: string,
     filePath: string,
     routesList: Route[]
 ): void {
@@ -79,16 +80,31 @@ function processFunctionRoute(
         if (!decoratorCall) return;
 
         const [decoratorName, pathArg] = parseDecoratorCall(decoratorCall);
-        const fullPath = pathArg ? path.join(basePath, pathArg).replace(/\\/g, "/") : basePath;
-
+        const { basePath, routePath, fullPath } = normalizeExplicitPaths(basepath, pathArg ? path.join(basepath, pathArg).replace(/\\/g, "/") : basepath);
+        
         if (decoratorName.endsWith(".route")) {
             const methods = getMethodsFromDecorator(decoratorCall);
             methods.forEach(method => {
-                routesList.push(createRoute(method, fullPath, basePath, filePath, decorator));
+                routesList.push({
+                    method,
+                    path: routePath,
+                    basePath,
+                    fullPath,
+                    file: filePath,
+                    fileLine: decorator.startPosition.row + 1
+                });
             });
         } else if (VALID_METHODS.has(decoratorName.split(".").pop()?.toUpperCase() || "")) {
             const method = decoratorName.split(".").pop()!.toUpperCase();
-            routesList.push(createRoute(method, fullPath, basePath, filePath, decorator));
+            routesList.push({
+                method,
+                path: routePath,
+                basePath,
+                fullPath,
+                file: filePath,
+                fileLine: decorator.startPosition.row + 1
+            });
+            
         }
     });
 }
@@ -104,11 +120,13 @@ function processClassMethod(
 
     const methodName = methodNameNode.text.toUpperCase();
     if (!VALID_METHODS.has(methodName)) return;
+    const { basePath, routePath, fullPath } = normalizeExplicitPaths("", classBasePath);
 
     routesList.push({
         method: methodName,
-        path: classBasePath,
-        basePath: "",
+        path: routePath,
+        basePath,
+        fullPath,
         file: filePath,
         fileLine: methodNode.startPosition.row + 1
     });
@@ -140,20 +158,4 @@ function getMethodsFromDecorator(decoratorCall: string): string[] {
         .split(",")
         .map(m => m.trim().replace(/['"]/g, "").toUpperCase())
         .filter(m => VALID_METHODS.has(m));
-}
-
-function createRoute(
-    method: string,
-    path: string,
-    basePath: string,
-    filePath: string,
-    decorator: Parser.SyntaxNode
-): Route {
-    return {
-        method,
-        path,
-        basePath,
-        file: filePath,
-        fileLine: decorator.startPosition.row + 1
-    };
 }
