@@ -211,20 +211,19 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
         if (this._view) this._view.webview.html = this.getLoading();
 
         console.log('Updating webview content...');
-        // Get routes from cache instead of frameworkMiddleware()
         const routes = force ? await this.refreshRoutes() : RouteCache.getInstance().getAllRoutes();
         console.log('Routes:', routes);
-        if (currentUpdate !== this.updateCounter) return;
-
+        if (!this._view || currentUpdate !== this.updateCounter) return;
+        
+        // Exit if view was closed during async operations
+    
         this.routes = routes;
 
         // Pass enhanced routes to the view
         if (routes.length === 0) {
             const html = this.getWelcomeContent();
-            if (this._view) {
-                console.log('No routes found, displaying welcome message.');
-                this._view.webview.html = html;
-            }
+            console.log('No routes found, displaying welcome message.');
+            this._view.webview.html = html;
             return;
         }
 
