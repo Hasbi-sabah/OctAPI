@@ -5,37 +5,49 @@ export function normalizeRouteComponents(
   fullPath: string,
   isPagesRouter: boolean
 ): { basePath: string; routePath: string } {
-  const separator = path.sep;
+  const separator = path.sep; // Platform-specific path separator.
+  
+  // Define the root directory for API routes based on the router type.
   const apiRoot = isPagesRouter
     ? `${separator}pages${separator}api`
     : `${separator}app${separator}api`;
 
-  const rawSegments = fullPath.split(apiRoot)[1]
-    ?.split(separator)
-    .filter(segment => {
-      if (!segment) return false;
-      if (segment.match(/\.(ts|js)x?$/)) return false;
-      if (!isPagesRouter && segment === 'route') return false;
-      return true;
-    }) || [];
+  // Extract the relative path after the API root.
+  const relativePath = fullPath.split(apiRoot)[1];
+  if (!relativePath) {
+    // If no relative path exists, return default root paths.
+    return { basePath: '', routePath: '/' }; 
+  }
 
-  const processedSegments = rawSegments
-    .map(segment => {
-      if (segment === 'index') return null;
-      return segment
-        .replace(/^\[(\.\.\.)?(\w+)\]$/, (_, isCatchAll, param) =>
-          `:${param}${isCatchAll ? '*' : ''}`)
-        .replace(/^\[\[(\.\.\.)?(\w+)\]\]$/, (_, isCatchAll, param) =>
-          `:${param}${isCatchAll ? '*' : ''}?`);
-    })
-    .filter((segment): segment is string => segment !== null);
+  // Split the relative path into segments and extract the file name.
+  const segments = relativePath.split(separator).filter(Boolean);
+  const fileName = segments.pop() || ''; // Last segment is the file name.
+  const folderPath = segments.join('/'); // Remaining segments form the folder path.
 
-  const [routePath, ...baseSegments] = processedSegments.reverse();
-  const basePath = baseSegments.reverse().join('/');
+  // Remove file extensions from the file name.
+  const cleanFileName = fileName.replace(/\.(ts|js)x?$/, '');
 
+  // Handle special cases for 'index' or 'route' files.
+  if (cleanFileName === 'index' || cleanFileName === 'route') {
+    return {
+      basePath: isPagesRouter ? `/${folderPath}` : `/${segments.slice(0, -1).join('/')}`,
+      routePath: isPagesRouter ? '/' : `/${segments.slice(-1)[0] || ''}`
+    };
+  }
+
+  // Handle App Router-specific logic for nested folders.
+  if (!isPagesRouter && folderPath) {
+    const lastFolder = segments.pop() || ''; // Extract the last folder name.
+    return {
+      basePath: `/${segments.join('/')}`,
+      routePath: `/${lastFolder}/${cleanFileName}`.replace(/\/+/g, '/')
+    };
+  }
+
+  // Default case for other files.
   return {
-    basePath: normalizePathComponent(basePath),
-    routePath: normalizePathComponent(routePath)
+    basePath: `/${folderPath}`,
+    routePath: `/${cleanFileName}`
   };
 }
 
@@ -63,14 +75,6 @@ export function normalizeExplicitPaths(
     routePath,
     fullPath
   };
-}
-
-function normalizePathComponent(component: string): string {
-  if (!component) return '';
-  return `/${component}`
-    .replace(/\/+/g, '/')
-    .replace(/^\/\//, '/')
-    .replace(/\/$/, '');
 }
 
 export function createRoute(

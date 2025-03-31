@@ -3,6 +3,7 @@ import extractFastAPIRoutes from "../parsers/fastapi";
 import extractFlaskRoutes from "../parsers/flask";
 import extractKoaRoutes from "../parsers/koa";
 import extractNestJSRoutes from "../parsers/nestjs";
+import extractNextJSRoutes from "../parsers/nextjs";
 import { Framework } from "../types";
 
 export const frameworks: Framework[] = [
@@ -35,5 +36,11 @@ export const frameworks: Framework[] = [
         function: extractFastAPIRoutes,
         extensions: ['.py'],
         includePatterns: ['**/*']
+    },
+    {
+        name: 'Next.js API',
+        function: extractNextJSRoutes,
+        extensions: ['.js', '.ts', '.tsx'],
+        includePatterns: ['**/api/**/*']
     }
 ]

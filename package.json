@@ -23,6 +23,7 @@
     "koa",
     "flask",
     "fastapi",
+    "nextjs",
     "vscode",
     "development",
     "postman"
@@ -135,7 +136,8 @@
             "NestJS",
             "Koa",
             "Flask",
-            "FastAPI"
+            "FastAPI",
+            "Next.js API"
           ],
           "order": 2
         },
