@@ -10,11 +10,16 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
     private updateCounter = 0; // Counter to track the latest update call
     routes: Route[] = [];
     starredRoutes: Set<string>;
+    private _viewReadyPromise: Promise<void>;
+    private _resolveViewReady!: () => void;
 
     constructor(private context: vscode.ExtensionContext) {
         // Initialize starred routes from persistent storage
         const stored = context.globalState.get<string[]>('starredRoutes') || [];
         this.starredRoutes = new Set(stored);
+        this._viewReadyPromise = new Promise(resolve => {
+            this._resolveViewReady = resolve;
+        });
     }
 
     // Persist the starred routes to global state
@@ -161,6 +166,7 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
         this._view = webviewView;
         webviewView.webview.options = { enableScripts: true };
         this._view.webview.html = this.getLoading();
+        this._resolveViewReady();
 
         // Listen for messages from the webview (e.g. refresh or open file)
         webviewView.webview.onDidReceiveMessage((message) => {
@@ -207,6 +213,7 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
 
     // Re-extract routes and update the HTML content of the webview
     async updateWebview(force: boolean = false) {
+        await this._viewReadyPromise;
         const currentUpdate = ++this.updateCounter;
         if (this._view) this._view.webview.html = this.getLoading();
 
