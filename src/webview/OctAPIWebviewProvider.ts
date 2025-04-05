@@ -219,15 +219,24 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
 
         console.log('Updating webview content...');
         const routes = force ? await this.refreshRoutes() : RouteCache.getInstance().getAllRoutes();
-        console.log('Routes:', routes);
+        const routesList = routes.map(route => {
+            if (route.file) {
+                route.file = route.file
+                    .replace(/\\/g, '/')  // Convert Windows paths to POSIX
+                    .replace(/^[a-zA-Z]:/, '') // Remove drive letter (e.g., C:)
+                    .replace(/^\/?/, '/'); // Ensure path starts with a single leading slash
+            }
+            return route;
+        })
+        console.log('Routes:', routesList);
         if (!this._view || currentUpdate !== this.updateCounter) return;
         
         // Exit if view was closed during async operations
     
-        this.routes = routes;
+        this.routes = routesList;
 
         // Pass enhanced routes to the view
-        if (routes.length === 0) {
+        if (routesList.length === 0) {
             const html = this.getWelcomeContent();
             console.log('No routes found, displaying welcome message.');
             this._view.webview.html = html;
@@ -235,7 +244,7 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
         }
 
         // Add starred status to routes
-        const processedRoutes = routes.map(route => ({
+        const processedRoutes = routesList.map(route => ({
             ...route,
             routeId: `${route.method}-${route.fullPath}-${route.file}`, // Unique ID
             isStarred: this.starredRoutes.has(`${route.method}-${route.fullPath}-${route.file}`)
