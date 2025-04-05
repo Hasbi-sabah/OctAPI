@@ -2,6 +2,14 @@
 
 All notable changes to the "OctAPI" extension will be documented in this file.
 
+## [0.6.0] - 2025-04-05  
+### Added  
+- **Next.js Support**: Added route extraction and normalization for both `pages` and `app` routers in Next.js projects.  
+
+### Fixed  
+- **Cross-Platform Compatibility**: Normalized file paths to ensure routes display correctly on Windows and other platforms.  
+- **Webview Initialization**: Addressed a case of infinite loading by ensuring the webview is fully ready before applying updates.  
+
 ## [0.5.4] - 2025-03-24 
 ### Changed  
 - **Unified Path Handling**: Standardized slash usage, dynamic segments, and empty path normalization across all supported frameworks, ensuring consistent route formatting and eliminating inconsistencies.  

@@ -22,7 +22,7 @@
 OctAPI provides a seamless way to explore and manage your API routes within Visual Studio Code. Here are its key features:
 
 - **Smart Route Detection** – Scans all files within a user-defined directory to identify API routes.
-- **Framework Support** – Works with Express, NestJS, Koa, Flask, and FastAPI.
+- **Framework Support** – Works with Express.js, NestJS, Next.js, Koa, Flask, and FastAPI.
 - **Smart File Watching & Caching** – Automatically detects file changes and updates routes in real time.
 - **Jump to Code** – Clicking a route takes you directly to the exact line where it's defined.
 - **Quick Copy with Prefixing** – Hover over a route to reveal a copy button, with an option to specify a route prefix.
@@ -46,7 +46,7 @@ OctAPI is constantly evolving. If your preferred framework isn't supported yet, 
 ## Requirements
 
 - **Visual Studio Code**: Ensure you have VS Code installed.
-- **Supported Frameworks**: Express.js, NestJS, Koa, Flask, and FastAPI.
+- **Supported Frameworks**: Express.js, NestJS, Next.js, Koa, Flask, and FastAPI.
 
 ---
 
@@ -95,6 +95,11 @@ You can install OctAPI from the following sources:
 
 ## Release Notes
 
+### v0.6.0 - 2025-04-05  
+- **Next.js Support**: Added support for Next.js API routes, including both app and pages routers.  
+- **Webview Improvements**: Fixed infinite loading issues with a view readiness promise.  
+- **File Path Normalization**: Ensured consistent route display across platforms, addressing issues on Windows.  
+
 ### v0.5.4 - 2025-03-24
 - **Unified Path Handling**: Standardized route formatting across frameworks for consistency. 
 - **Initial Render Infinite Loading**: Fixed an issue causing an infinite loading screen on first render.
@@ -108,12 +113,6 @@ You can install OctAPI from the following sources:
 ### v0.5.1 - 2025-03-15 
 - Fixed infinite loading when no routes were detected.  
 - Resolved an issue where configuration changes weren't applying properly.  
-
-### v0.5.0 - 2025-03-14  
-- **File Watcher with Caching** – OctAPI now detects file changes and updates routes automatically, significantly improving performance.  
-- **Automated File Retrieval for Frameworks** – A new utility streamlines file collection based on framework-specific structures, enhancing compatibility.  
-- **Improved File Filtering and Directory Handling** – Directories are now processed in batches to prevent stack overflows.  
-- **Updated Welcome Message** – Encourages users to report unsupported frameworks via a dedicated GitHub issue template.  
 
 ---
 
