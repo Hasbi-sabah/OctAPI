@@ -10,6 +10,9 @@
             --background-color: var(--vscode-sideBar-background, #ffffff);
             --text-color: var(--vscode-editor-foreground, #333333);
             --list-hover-background: var(--vscode-list-hoverBackground, rgba(0, 0, 0, 0.05));
+            --card-background: var(--vscode-editor-background, #f5f5f5);
+            --card-border: var(--vscode-panel-border, #e0e0e0);
+            --card-shadow: rgba(0, 0, 0, 0.1);
         }
 
         body {
@@ -271,6 +274,94 @@
             font-weight: bold;
             pointer-events: none;
         }
+
+        /* Hover Card Styles */
+        .route-info-card {
+            position: absolute;
+            padding: 8px;
+            z-index: 100;
+            background-color: var(--card-background);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 12px var(--card-shadow);
+            /* width: 300px; */
+            /* max-width: 80vw; */
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            /* Position the card below the route by default */
+            top: 100%;
+            left: 0;
+            margin-top: 5px;
+            display: none;
+            /* Hide by default */
+        }
+
+        .route-info-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+            display: block;
+            /* Show when visible */
+        }
+
+        .route-info-card h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        .route-info-card .method-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .route-info-card .info-row {
+            display: flex;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .route-info-card .info-label {
+            flex: 0 0 80px;
+            font-weight: bold;
+            color: rgba(var(--text-color), 0.7);
+        }
+
+        .route-info-card .info-value {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .route-info-card .parameters {
+            margin-top: 8px;
+            border-top: 1px solid var(--card-border);
+            padding-top: 8px;
+        }
+
+        .route-info-card .parameters-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+
+        .route-info-card .parameter {
+            padding: 4px 0;
+            font-size: 12px;
+        }
+
+        .route-info-card .parameter-name {
+            font-family: monospace;
+            background-color: rgba(var(--text-color), 0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
     </style>
 </head>
 
@@ -306,11 +397,19 @@
 
     <ul id="routesList"></ul>
 
+    <!-- Route Info Card -->
+    <div id="routeInfoCard" class="route-info-card"></div>
+
     <script>
         let favoritesOnly = false;
         let starredCount = 0;
         let currentGrouping = 'none';
         let routes = JSON.parse('^routes^');
+        let currentHoveredRoute = null;
+        let hoverTimeout = null;
+        let activeRouteItem = null;
+        let cardVisible = false;
+        const SCREEN_PADDING = 16; // Padding from screen edges
 
         // Initialize starred count
         starredCount = routes.filter(route => route.isStarred).length;
@@ -465,7 +564,10 @@
             const description = route.file.split('/').slice(-2).join('/');
 
             return `
-                <li class="route-item" onclick="openRoute('${route.file}', ${route.fileLine})">
+                <li class="route-item" 
+                    onclick="openRoute('${route.file}', ${route.fileLine})"
+                    onmouseenter="showRouteInfo(event, '${route.routeId}')"
+                    onmouseleave="hideRouteInfoWithDelay()">
                     <svg class="star-icon ${route.isStarred ? 'starred' : ''}" 
                          data-route-id="${route.routeId}"
                          onclick="event.stopPropagation(); toggleFavorite('${route.routeId}', this)"
@@ -476,7 +578,7 @@
                         ${getMethodIcon(route.method)}
                         ${route.method}
                     </span>
-                    <span class="path" title="${escapedPath}">${escapedPath}</span>
+                    <span class="path">${escapedPath}</span>
                     <span class="description" title="${description}">- ${description}</span>
                     <button class="copy-button" onclick="event.stopPropagation(); copyRoute('${route.fullPath}')">
                         <svg viewBox="0 0 24 24" width="14" height="14">
@@ -541,10 +643,163 @@
             vscode.postMessage({ command: 'openFile', file: file, line: line });
         }
 
+        // Route Info Card Functions
+        function showRouteInfo(event, routeId) {
+            clearTimeout(hoverTimeout);
+
+            // Store the active route item
+            activeRouteItem = event.currentTarget;
+
+            // Find the route data
+            const route = routes.find(r => r.routeId === routeId);
+            if (!route) return;
+
+            currentHoveredRoute = route;
+
+            // Set a small delay to prevent flickering on quick mouse movements
+            hoverTimeout = setTimeout(() => {
+                const card = document.getElementById('routeInfoCard');
+
+                // Extract path parameters
+                const pathParams = extractPathParameters(route.fullPath);
+
+                // Create card content
+                card.innerHTML = `
+                    <div class="info-row">
+                        <div class="info-label">File:</div>
+                        <div class="info-value">${route.file}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Line:</div>
+                        <div class="info-value">${route.fileLine}</div>
+                    </div>
+                    ${pathParams.length > 0 ? `
+                    <div class="parameters">
+                        <div class="parameters-title">Path Parameters:</div>
+                        ${pathParams.map(param => `
+                            <div class="parameter">
+                                <span class="parameter-name">${param}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
+                `;
+
+                // Position the card
+                positionCard(card, activeRouteItem);
+
+                card.classList.add('visible');
+                cardVisible = true;
+            }, 200);
+        }
+
+        function positionCard(card, routeItem) {
+            const rect = routeItem.getBoundingClientRect();
+            const scrollY = window.scrollY;
+        
+            // Create invisible clone to measure card dimensions
+            const clone = card.cloneNode(true);
+            Object.assign(clone.style, {
+                position: 'absolute',
+                left: '-9999px',
+                visibility: 'hidden',
+                display: 'block'
+            });
+            document.body.appendChild(clone);
+        
+            // Get true card dimensions
+            const cardHeight = clone.offsetHeight;
+            const cardWidth = rect.width;
+            document.body.removeChild(clone);
+        
+            // Calculate available space
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+        
+            // Position horizontally
+            card.style.width = `${cardWidth}px`;
+            card.style.left = `${rect.left}px`;
+        
+            // Position vertically with smart flipping
+            if (spaceBelow >= cardHeight || spaceBelow >= spaceAbove) {
+                card.style.top = `${rect.bottom + scrollY }px`;
+                card.style.transform = `translateY(${Math.min(0, spaceBelow - cardHeight)}px)`;
+            } else {
+                const gapAbove = 10; // Add a gap when the card is above
+                card.style.top = `${rect.top + scrollY - cardHeight - gapAbove}px`;
+                card.style.transform = `translateY(${Math.max(0, cardHeight - spaceAbove)}px)`;
+            }
+        }
+
+        function hideRouteInfoWithDelay() {
+            clearTimeout(hoverTimeout);
+
+            // Add a small delay before hiding to allow moving to the card
+            hoverTimeout = setTimeout(() => {
+                // Only hide if we're not hovering over the card
+                if (!isHoveringCard()) {
+                    hideRouteInfo();
+                }
+            }, 100);
+        }
+
+        function hideRouteInfo() {
+            const card = document.getElementById('routeInfoCard');
+            card.classList.remove('visible');
+            currentHoveredRoute = null;
+            activeRouteItem = null;
+            cardVisible = false;
+        }
+
+        function isHoveringCard() {
+            // Check if the mouse is over the card
+            const card = document.getElementById('routeInfoCard');
+            return card.matches(':hover');
+        }
+
+        function extractPathParameters(path) {
+            const params = [];
+
+            // Handle FastAPI format: /users/{username}/post/{id}
+            const fastApiRegex = /\{(\w+)\}/g;
+            let match;
+            while ((match = fastApiRegex.exec(path)) !== null) {
+                params.push(match[1]);
+            }
+
+            // Handle Express/NestJS/Koa format: /users/:id
+            const expressRegex = /\/:(\w+)/g;
+            while ((match = expressRegex.exec(path)) !== null) {
+                params.push(match[1]);
+            }
+
+            // Handle Flask format: /users/<int:user_id>
+            const flaskRegex = /<[^>]+>/g;
+            while ((match = flaskRegex.exec(path)) !== null) {
+                const param = match[0].slice(1, -1).split(':').pop();
+                if (param) {
+                    params.push(param);
+                }
+            }
+
+            return params;
+        }
+
         // Initial render
         renderRoutes();
         showGroupingButtons();
         updateFavoritesFilterButton();
+
+        // Add event listeners to the card
+        const card = document.getElementById('routeInfoCard');
+
+        card.addEventListener('mouseenter', () => {
+            clearTimeout(hoverTimeout);
+        });
+
+        card.addEventListener('mouseleave', () => {
+            hideRouteInfo();
+        });
     </script>
 
 </body>
