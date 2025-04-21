@@ -362,6 +362,58 @@
             padding: 1px 4px;
             border-radius: 3px;
         }
+
+        .route-info-card .notes-section {
+            margin-top: 8px;
+            border-top: 1px solid var(--card-border);
+            padding-top: 8px;
+        }
+
+        .route-info-card .notes-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .route-info-card .notes-textarea {
+            width: 100%;
+            min-height: 60px;
+            padding: 6px;
+            font-size: 12px;
+            font-family: inherit;
+            border: 1px solid var(--card-border);
+            border-radius: 4px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .route-info-card .delete-note-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            font-size: 12px;
+            color: #64748b;
+            opacity: 0.7;
+        }
+
+        .route-info-card .delete-note-button:hover {
+            opacity: 1;
+            color: #ef4444;
+        }
+
+        .route-info-card .note-status {
+            font-size: 10px;
+            margin-top: 4px;
+            color: #64748b;
+            text-align: right;
+            height: 10px;
+        }
     </style>
 </head>
 
@@ -409,7 +461,8 @@
         let hoverTimeout = null;
         let activeRouteItem = null;
         let cardVisible = false;
-        const SCREEN_PADDING = 16; // Padding from screen edges
+        let noteDebounceTimer = null;
+        const NOTE_DEBOUNCE_DELAY = 500; // ms
 
         // Initialize starred count
         starredCount = routes.filter(route => route.isStarred).length;
@@ -443,7 +496,7 @@
         }
 
         window.addEventListener('message', event => {
-            const { command, routeId, isStarred } = event.data;
+            const { command, routeId, isStarred, content } = event.data;
             if (command === 'updateFavorite') {
                 const starIcon = document.querySelector(`[data-route-id="${routeId}"] .star-icon`);
                 if (starIcon) {
@@ -461,6 +514,24 @@
                         renderRoutes();
                     }
                     updateFavoritesFilterButton();
+                }
+            } else if (command === 'updateNote') {
+                // Update the route object in our local state
+                const route = routes.find(r => r.routeId === routeId);
+                if (route) {
+                    if (content === null) {
+                        delete route.note;
+                    } else {
+                        route.note = content;
+                    }
+                }
+
+                // Update the textarea if the current route is being displayed
+                if (currentHoveredRoute && currentHoveredRoute.routeId === routeId) {
+                    const textarea = document.getElementById('routeNotes');
+                    if (textarea) {
+                        textarea.value = content || '';
+                    }
                 }
             }
         });
@@ -540,17 +611,17 @@
                     return `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
                 case "PATCH":
                     return `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 512 512" fill="currentColor">
-        <defs>
-            <mask id="cutout" x="0" y="0" width="100%" height="100%">
-                <!-- Outer shape (full visibility) -->
-                <path d="M 472.021 162.393 C 469.178 172.948 463.775 182.831 455.776 190.803 L 185.511 461.081 C 177.525 469.08 167.643 474.482 157.088 477.327 C 146.504 480.185 135.233 480.583 123.934 478.865 C 101.325 475.402 78.385 463.664 59.389 444.696 C 45.15 430.457 35.008 413.962 29.343 397.112 C 23.695 380.248 22.485 362.888 26.759 346.985 C 29.605 336.43 35.005 326.56 43.006 318.575 L 313.268 48.299 C 321.254 40.312 331.137 34.911 341.692 32.065 C 352.277 29.193 363.534 28.808 374.846 30.526 C 397.47 33.991 420.396 45.728 439.39 64.696 C 453.63 78.936 463.774 95.416 469.436 112.28 C 475.072 129.144 476.309 146.505 472.021 162.393 Z" fill="white"/>
-                <!-- Center shape (cutout) -->
-                <path d="M 221.799 181.933 Q 241.359 162.373 260.919 181.933 L 319.599 240.613 Q 339.159 260.173 319.599 279.733 L 260.919 338.413 Q 241.359 357.973 221.799 338.413 L 163.119 279.733 Q 143.559 260.173 163.119 240.613 Z" fill="black"/>
-            </mask>
-        </defs>
-        <!-- Apply mask to the main shape -->
-        <path d="M 472.021 162.393 C 469.178 172.948 463.775 182.831 455.776 190.803 L 185.511 461.081 C 177.525 469.08 167.643 474.482 157.088 477.327 C 146.504 480.185 135.233 480.583 123.934 478.865 C 101.325 475.402 78.385 463.664 59.389 444.696 C 45.15 430.457 35.008 413.962 29.343 397.112 C 23.695 380.248 22.485 362.888 26.759 346.985 C 29.605 336.43 35.005 326.56 43.006 318.575 L 313.268 48.299 C 321.254 40.312 331.137 34.911 341.692 32.065 C 352.277 29.193 363.534 28.808 374.846 30.526 C 397.47 33.991 420.396 45.728 439.39 64.696 C 453.63 78.936 463.774 95.416 469.436 112.28 C 475.072 129.144 476.309 146.505 472.021 162.393 Z" fill="currentColor" mask="url(#cutout)"/>
-    </svg>`;
+                            <defs>
+                                <mask id="cutout" x="0" y="0" width="100%" height="100%">
+                                    <!-- Outer shape (full visibility) -->
+                                    <path d="M 472.021 162.393 C 469.178 172.948 463.775 182.831 455.776 190.803 L 185.511 461.081 C 177.525 469.08 167.643 474.482 157.088 477.327 C 146.504 480.185 135.233 480.583 123.934 478.865 C 101.325 475.402 78.385 463.664 59.389 444.696 C 45.15 430.457 35.008 413.962 29.343 397.112 C 23.695 380.248 22.485 362.888 26.759 346.985 C 29.605 336.43 35.005 326.56 43.006 318.575 L 313.268 48.299 C 321.254 40.312 331.137 34.911 341.692 32.065 C 352.277 29.193 363.534 28.808 374.846 30.526 C 397.47 33.991 420.396 45.728 439.39 64.696 C 453.63 78.936 463.774 95.416 469.436 112.28 C 475.072 129.144 476.309 146.505 472.021 162.393 Z" fill="white"/>
+                                    <!-- Center shape (cutout) -->
+                                    <path d="M 221.799 181.933 Q 241.359 162.373 260.919 181.933 L 319.599 240.613 Q 339.159 260.173 319.599 279.733 L 260.919 338.413 Q 241.359 357.973 221.799 338.413 L 163.119 279.733 Q 143.559 260.173 163.119 240.613 Z" fill="black"/>
+                                </mask>
+                            </defs>
+                            <!-- Apply mask to the main shape -->
+                            <path d="M 472.021 162.393 C 469.178 172.948 463.775 182.831 455.776 190.803 L 185.511 461.081 C 177.525 469.08 167.643 474.482 157.088 477.327 C 146.504 480.185 135.233 480.583 123.934 478.865 C 101.325 475.402 78.385 463.664 59.389 444.696 C 45.15 430.457 35.008 413.962 29.343 397.112 C 23.695 380.248 22.485 362.888 26.759 346.985 C 29.605 336.43 35.005 326.56 43.006 318.575 L 313.268 48.299 C 321.254 40.312 331.137 34.911 341.692 32.065 C 352.277 29.193 363.534 28.808 374.846 30.526 C 397.47 33.991 420.396 45.728 439.39 64.696 C 453.63 78.936 463.774 95.416 469.436 112.28 C 475.072 129.144 476.309 146.505 472.021 162.393 Z" fill="currentColor" mask="url(#cutout)"/>
+                        </svg>`;
                 case "DELETE":
                     return `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
                 default:
@@ -643,6 +714,70 @@
             vscode.postMessage({ command: 'openFile', file: file, line: line });
         }
 
+        function saveNote(routeId, content) {
+            clearTimeout(noteDebounceTimer);
+
+            // Show saving status
+            const statusEl = document.getElementById('noteStatus');
+            if (statusEl) {
+                statusEl.textContent = 'Saving...';
+            }
+
+            noteDebounceTimer = setTimeout(() => {
+                vscode.postMessage({
+                    command: 'saveNote',
+                    routeId: routeId,
+                    content: content
+                });
+
+                // Update the route object in our local state
+                const route = routes.find(r => r.routeId === routeId);
+                if (route) {
+                    route.note = content;
+                }
+
+                // Update status
+                if (statusEl) {
+                    statusEl.textContent = 'Saved';
+                    setTimeout(() => {
+                        if (statusEl) {
+                            statusEl.textContent = '';
+                        }
+                    }, 1500);
+                }
+            }, NOTE_DEBOUNCE_DELAY);
+        }
+
+        function deleteNote(routeId) {
+            vscode.postMessage({
+                command: 'deleteNote',
+                routeId: routeId
+            });
+
+            // Update the route object in our local state
+            const route = routes.find(r => r.routeId === routeId);
+            if (route) {
+                delete route.note;
+            }
+
+            // Clear the textarea
+            const textarea = document.getElementById('routeNotes');
+            if (textarea) {
+                textarea.value = '';
+            }
+
+            // Update status
+            const statusEl = document.getElementById('noteStatus');
+            if (statusEl) {
+                statusEl.textContent = 'Note deleted';
+                setTimeout(() => {
+                    if (statusEl) {
+                        statusEl.textContent = '';
+                    }
+                }, 1500);
+            }
+        }
+
         // Route Info Card Functions
         function showRouteInfo(event, routeId) {
             clearTimeout(hoverTimeout);
@@ -683,6 +818,25 @@
                         `).join('')}
                     </div>
                     ` : ''}
+                    <div class="notes-section">
+                        <div class="notes-title">
+                            <span>Notes:</span>
+                            ${route.note ? `
+                            <button class="delete-note-button" onclick="deleteNote('${route.routeId}')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                                </svg>
+                            </button>
+                            ` : ''}
+                        </div>
+                        <textarea 
+                            id="routeNotes" 
+                            class="notes-textarea" 
+                            placeholder="Add notes about this route..."
+                            oninput="saveNote('${route.routeId}', this.value)"
+                        >${route.note || ''}</textarea>
+                        <div id="noteStatus" class="note-status"></div>
+                    </div>
                 `;
 
                 // Position the card

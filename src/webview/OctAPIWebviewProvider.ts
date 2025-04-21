@@ -10,13 +10,16 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
     private updateCounter = 0; // Counter to track the latest update call
     routes: Route[] = [];
     starredRoutes: Set<string>;
+    notes: Map<string, string>; // Store notes for routes
     private _viewReadyPromise: Promise<void>;
     private _resolveViewReady!: () => void;
 
     constructor(private context: vscode.ExtensionContext) {
         // Initialize starred routes from persistent storage
-        const stored = context.globalState.get<string[]>('starredRoutes') || [];
-        this.starredRoutes = new Set(stored);
+        const storedStars = context.globalState.get<string[]>('starredRoutes') || [];
+        this.starredRoutes = new Set(storedStars);
+        const storedNotes = context.globalState.get<{ [key: string]: string }>('routeNotes') || {};
+        this.notes = new Map(Object.entries(storedNotes));
         this._viewReadyPromise = new Promise(resolve => {
             this._resolveViewReady = resolve;
         });
@@ -25,6 +28,21 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
     // Persist the starred routes to global state
     persistStarredRoutes() {
         this.context.globalState.update('starredRoutes', Array.from(this.starredRoutes));
+    }
+
+    persistNotes() {
+        const notesObject = Object.fromEntries(this.notes);
+        this.context.globalState.update('routeNotes', notesObject);
+    }
+
+    setRouteNote(routeId: string, content: string) {
+        this.notes.set(routeId, content);
+        this.persistNotes();
+    }
+
+    deleteRouteNote(routeId: string) {
+        this.notes.delete(routeId);
+        this.persistNotes();
     }
 
     // Export routes to a Postman collection
@@ -199,6 +217,23 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
                         isStarred: this.starredRoutes.has(message.routeId)
                     });
                     break;
+                case 'saveNote':
+                    this.setRouteNote(message.routeId, message.content);
+                    this._view?.webview.postMessage({
+                        command: 'updateNote',
+                        routeId: message.routeId,
+                        content: message.content
+                    });
+                    break;
+
+                case 'deleteNote':
+                    this.deleteRouteNote(message.routeId);
+                    this._view?.webview.postMessage({
+                        command: 'updateNote',
+                        routeId: message.routeId,
+                        content: null
+                    });
+                    break;
             }
         });
     }
@@ -247,7 +282,8 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
         const processedRoutes = routesList.map(route => ({
             ...route,
             routeId: `${route.method}-${route.fullPath}-${route.file}`, // Unique ID
-            isStarred: this.starredRoutes.has(`${route.method}-${route.fullPath}-${route.file}`)
+            isStarred: this.starredRoutes.has(`${route.method}-${route.fullPath}-${route.file}`),
+            note: this.notes.get(`${route.method}-${route.fullPath}-${route.file}`) || null
         }));
 
         const html = this.getHtmlContent(processedRoutes);

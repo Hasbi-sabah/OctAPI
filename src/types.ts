@@ -9,6 +9,7 @@ export interface Route {
     fullPath: string
     routeId?: string
     isStarred?: boolean
+    notes?: string
 }
 
 export interface Framework {
