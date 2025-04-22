@@ -2,6 +2,11 @@
 
 All notable changes to the "OctAPI" extension will be documented in this file.
 
+## [0.7.0] - 2025-04-22 
+### Added  
+- **Route Info Panel**: Introduced a toggleable info card for each route, showing details like method, path, and relative file location.  
+- **Persistent Route Notes**: Users can now add, edit, and delete personal notes for individual routes directly in the info panel.  
+
 ## [0.6.0] - 2025-04-05  
 ### Added  
 - **Next.js Support**: Added route extraction and normalization for both `pages` and `app` routers in Next.js projects.  

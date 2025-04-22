@@ -31,6 +31,8 @@ OctAPI provides a seamless way to explore and manage your API routes within Visu
 - **Native Sidebar Integration** – View all detected routes directly in VS Code’s sidebar.
 - **Favorite Routes Management** – Star and persistently favorite frequently used routes, with an option to clear all favorites via a dedicated command.
 - **Postman Export Command** – Export API routes as an importable Postman JSON collection, complete with method, full path, and path parameters, organized in appropriate subfolders.
+- **Route Info Panel** – Click to reveal a detailed card showing extra information about a route.
+- **Persistent Notes** – Add and manage notes for each route, saved across sessions.
 
 ---
 
@@ -95,6 +97,10 @@ You can install OctAPI from the following sources:
 
 ## Release Notes
 
+### v0.7.0 - 2025-04-22  
+- **Route Info Panel**: Added a toggleable panel to view detailed route information.  
+- **Persistent Notes**: Users can now add, edit, and delete notes for each route, stored persistently.  
+
 ### v0.6.0 - 2025-04-05  
 - **Next.js Support**: Added support for Next.js API routes, including both app and pages routers.  
 - **Webview Improvements**: Fixed infinite loading issues with a view readiness promise.  
@@ -109,10 +115,6 @@ You can install OctAPI from the following sources:
 
 ### v0.5.2 - 2025-03-21  
 - **Optimized File Scanning**: Improved performance by scanning only relevant files, reducing unnecessary processing.
-
-### v0.5.1 - 2025-03-15 
-- Fixed infinite loading when no routes were detected.  
-- Resolved an issue where configuration changes weren't applying properly.  
 
 ---
 
