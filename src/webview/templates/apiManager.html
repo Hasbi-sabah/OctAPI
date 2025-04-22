@@ -188,29 +188,38 @@
             /* Adjust this value as needed */
         }
 
-        .route-item .copy-button {
+        .route-item .action-buttons {
             display: none;
             position: absolute;
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
+            gap: 4px;
+        }
+
+        .route-item .copy-button,
+        .route-item .notes-button {
             background-color: rgba(var(--vscode-button-background-rgb), 0.1);
-            fill: var(--text-color);
+            color: var(--text-color);
             border: 1px solid rgba(var(--vscode-button-border-rgb), 0.3);
-            padding: 4px 8px;
+            padding: 4px;
             cursor: pointer;
             border-radius: 4px;
             font-size: 0.8em;
             transition: all 0.3s ease;
+            /* display: flex;
+            align-items: center;
+            justify-content: center; */
         }
 
-        .route-item .copy-button:hover {
+        .route-item .copy-button:hover,
+        .route-item .notes-button:hover {
             background-color: rgba(128, 128, 128, 0.1);
             border: 1px solid rgba(var(--vscode-button-border-rgb), 0.5);
         }
 
-        .route-item:hover .copy-button {
-            display: inline-block;
+        .route-item:hover .action-buttons {
+            display: flex;
         }
 
         .route-item:hover .description {
@@ -218,7 +227,7 @@
         }
 
         .route-item:hover .path {
-            margin-right: 60px;
+            margin-right: 70px;
         }
 
         .star-icon {
@@ -275,7 +284,7 @@
             pointer-events: none;
         }
 
-        /* Hover Card Styles */
+        /* Notes Card Styles */
         .route-info-card {
             position: absolute;
             padding: 8px;
@@ -285,24 +294,19 @@
             border-radius: 6px;
             box-sizing: border-box;
             box-shadow: 0 4px 12px var(--card-shadow);
-            /* width: 300px; */
-            /* max-width: 80vw; */
             opacity: 0;
             transform: translateY(10px);
             transition: opacity 0.2s ease, transform 0.2s ease;
-            /* Position the card below the route by default */
             top: 100%;
             left: 0;
             margin-top: 5px;
             display: none;
-            /* Hide by default */
         }
 
         .route-info-card.visible {
             opacity: 1;
             transform: translateY(0);
             display: block;
-            /* Show when visible */
         }
 
         .route-info-card h3 {
@@ -390,9 +394,11 @@
             color: var(--text-color);
             resize: vertical;
             box-sizing: border-box;
+            margin-bottom: 0;
         }
 
-        .route-info-card .delete-note-button {
+        .route-info-card .delete-note-button,
+        .route-info-card .close-card-button {
             background: none;
             border: none;
             cursor: pointer;
@@ -402,9 +408,22 @@
             opacity: 0.7;
         }
 
-        .route-info-card .delete-note-button:hover {
+        .route-info-card .delete-note-button:hover,
+        .route-info-card .close-card-button:hover {
             opacity: 1;
             color: #ef4444;
+        }
+
+        .route-info-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .route-info-card .card-title {
+            font-weight: bold;
+            font-size: 14px;
         }
 
         .route-info-card .note-status {
@@ -457,10 +476,7 @@
         let starredCount = 0;
         let currentGrouping = 'none';
         let routes = JSON.parse('^routes^');
-        let currentHoveredRoute = null;
-        let hoverTimeout = null;
-        let activeRouteItem = null;
-        let cardVisible = false;
+        let currentRouteId = null;
         let noteDebounceTimer = null;
         const NOTE_DEBOUNCE_DELAY = 500; // ms
 
@@ -527,7 +543,7 @@
                 }
 
                 // Update the textarea if the current route is being displayed
-                if (currentHoveredRoute && currentHoveredRoute.routeId === routeId) {
+                if (currentRouteId === routeId) {
                     const textarea = document.getElementById('routeNotes');
                     if (textarea) {
                         textarea.value = content || '';
@@ -636,9 +652,7 @@
 
             return `
                 <li class="route-item" 
-                    onclick="openRoute('${route.file}', ${route.fileLine})"
-                    onmouseenter="showRouteInfo(event, '${route.routeId}')"
-                    onmouseleave="hideRouteInfoWithDelay()">
+                    onclick="openRoute('${route.file}', ${route.fileLine})">
                     <svg class="star-icon ${route.isStarred ? 'starred' : ''}" 
                          data-route-id="${route.routeId}"
                          onclick="event.stopPropagation(); toggleFavorite('${route.routeId}', this)"
@@ -651,11 +665,18 @@
                     </span>
                     <span class="path">${escapedPath}</span>
                     <span class="description" title="${description}">- ${description}</span>
-                    <button class="copy-button" onclick="event.stopPropagation(); copyRoute('${route.fullPath}')">
-                        <svg viewBox="0 0 24 24" width="14" height="14">
-                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                        </svg>
-                    </button>
+                    <div class="action-buttons">
+                        <button class="notes-button" onclick="event.stopPropagation(); toggleRouteInfo('${route.routeId}')" title="Notes">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19.8201 14H15.6001C15.04 14 14.76 14 14.5461 14.109C14.3579 14.2049 14.2049 14.3578 14.1091 14.546C14.0001 14.7599 14.0001 15.0399 14.0001 15.6V19.82M20 12.7269V7.2C20 6.0799 20 5.51984 19.782 5.09202C19.5903 4.71569 19.2843 4.40973 18.908 4.21799C18.4802 4 17.9201 4 16.8 4H7.2C6.0799 4 5.51984 4 5.09202 4.21799C4.71569 4.40973 4.40973 4.71569 4.21799 5.09202C4 5.51984 4 6.0799 4 7.2V16.8C4 17.9201 4 18.4802 4.21799 18.908C4.40973 19.2843 4.71569 19.5903 5.09202 19.782C5.51984 20 6.0799 20 7.2 20H12.9496C13.4578 20 13.7118 20 13.9498 19.9407C14.1608 19.8882 14.3618 19.8016 14.5449 19.6844C14.7515 19.5522 14.926 19.3675 15.2751 18.9983L19.1254 14.9252C19.4486 14.5833 19.6101 14.4124 19.7255 14.2156C19.8278 14.041 19.903 13.8519 19.9486 13.6548C20 13.4325 20 13.1973 20 12.7269Z"></path>
+                            </svg>
+                        </button>
+                        <button class="copy-button" onclick="event.stopPropagation(); copyRoute('${route.fullPath}')" title="Copy route">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </li>
                 `;
         }
@@ -778,73 +799,89 @@
             }
         }
 
-        // Route Info Card Functions
-        function showRouteInfo(event, routeId) {
-            clearTimeout(hoverTimeout);
+        // Toggle the route info card
+        function toggleRouteInfo(routeId) {
+            const card = document.getElementById('routeInfoCard');
+            
+            // If the card is already visible for this route, hide it
+            if (currentRouteId === routeId && card.classList.contains('visible')) {
+                hideRouteInfo();
+                return;
+            }
+            
+            // Otherwise, show the card for this route
+            showRouteInfo(routeId);
+        }
 
-            // Store the active route item
-            activeRouteItem = event.currentTarget;
-
+        // Show the route info card
+        function showRouteInfo(routeId) {
             // Find the route data
             const route = routes.find(r => r.routeId === routeId);
             if (!route) return;
 
-            currentHoveredRoute = route;
-
-            // Set a small delay to prevent flickering on quick mouse movements
-            hoverTimeout = setTimeout(() => {
-                const card = document.getElementById('routeInfoCard');
-
-                // Extract path parameters
-                const pathParams = extractPathParameters(route.fullPath);
-
-                // Create card content
-                card.innerHTML = `
-                    <div class="info-row">
-                        <div class="info-label">File:</div>
-                        <div class="info-value">${route.file}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Line:</div>
-                        <div class="info-value">${route.fileLine}</div>
-                    </div>
-                    ${pathParams.length > 0 ? `
-                    <div class="parameters">
-                        <div class="parameters-title">Path Parameters:</div>
-                        ${pathParams.map(param => `
-                            <div class="parameter">
-                                <span class="parameter-name">${param}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    ` : ''}
-                    <div class="notes-section">
-                        <div class="notes-title">
-                            <span>Notes:</span>
-                            ${route.note ? `
-                            <button class="delete-note-button" onclick="deleteNote('${route.routeId}')">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                                </svg>
-                            </button>
-                            ` : ''}
+            currentRouteId = routeId;
+            
+            const card = document.getElementById('routeInfoCard');
+            
+            // Extract path parameters
+            const pathParams = extractPathParameters(route.fullPath);
+            
+            // Create card content
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="card-title"> <span class="method-${route.method.toLowerCase()}">${route.method}</span> ${route.fullPath}</div>
+                    <button class="close-card-button" onclick="hideRouteInfo()" title="Close">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">File:</div>
+                    <div class="info-value">${route.relativePath}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Line:</div>
+                    <div class="info-value">${route.fileLine}</div>
+                </div>
+                ${pathParams.length > 0 ? `
+                <div class="parameters">
+                    <div class="parameters-title">Path Parameters:</div>
+                    ${pathParams.map(param => `
+                        <div class="parameter">
+                            <span class="parameter-name">${param}</span>
                         </div>
-                        <textarea 
-                            id="routeNotes" 
-                            class="notes-textarea" 
-                            placeholder="Add notes about this route..."
-                            oninput="saveNote('${route.routeId}', this.value)"
-                        >${route.note || ''}</textarea>
-                        <div id="noteStatus" class="note-status"></div>
+                    `).join('')}
+                </div>
+                ` : ''}
+                <div class="notes-section">
+                    <div class="notes-title">
+                        <span>Notes:</span>
+                        ${route.note ? `
+                        <button class="delete-note-button" onclick="deleteNote('${route.routeId}')" title="Delete note">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                        </button>
+                        ` : ''}
                     </div>
-                `;
-
-                // Position the card
-                positionCard(card, activeRouteItem);
-
-                card.classList.add('visible');
-                cardVisible = true;
-            }, 200);
+                    <textarea 
+                        id="routeNotes" 
+                        class="notes-textarea" 
+                        placeholder="Add notes about this route..."
+                        oninput="saveNote('${route.routeId}', this.value)"
+                    >${route.note || ''}</textarea>
+                    <div id="noteStatus" class="note-status"></div>
+                </div>
+            `;
+            
+            // Find the route item element
+            const routeItem = document.querySelector(`[data-route-id="${routeId}"]`).closest('.route-item');
+            
+            // Position the card
+            positionCard(card, routeItem);
+            
+            card.classList.add('visible');
         }
 
         function positionCard(card, routeItem) {
@@ -876,7 +913,7 @@
         
             // Position vertically with smart flipping
             if (spaceBelow >= cardHeight || spaceBelow >= spaceAbove) {
-                card.style.top = `${rect.bottom + scrollY }px`;
+                card.style.top = `${rect.bottom + scrollY}px`;
                 card.style.transform = `translateY(${Math.min(0, spaceBelow - cardHeight)}px)`;
             } else {
                 const gapAbove = 10; // Add a gap when the card is above
@@ -885,30 +922,10 @@
             }
         }
 
-        function hideRouteInfoWithDelay() {
-            clearTimeout(hoverTimeout);
-
-            // Add a small delay before hiding to allow moving to the card
-            hoverTimeout = setTimeout(() => {
-                // Only hide if we're not hovering over the card
-                if (!isHoveringCard()) {
-                    hideRouteInfo();
-                }
-            }, 100);
-        }
-
         function hideRouteInfo() {
             const card = document.getElementById('routeInfoCard');
             card.classList.remove('visible');
-            currentHoveredRoute = null;
-            activeRouteItem = null;
-            cardVisible = false;
-        }
-
-        function isHoveringCard() {
-            // Check if the mouse is over the card
-            const card = document.getElementById('routeInfoCard');
-            return card.matches(':hover');
+            currentRouteId = null;
         }
 
         function extractPathParameters(path) {
@@ -944,15 +961,15 @@
         showGroupingButtons();
         updateFavoritesFilterButton();
 
-        // Add event listeners to the card
-        const card = document.getElementById('routeInfoCard');
-
-        card.addEventListener('mouseenter', () => {
-            clearTimeout(hoverTimeout);
-        });
-
-        card.addEventListener('mouseleave', () => {
-            hideRouteInfo();
+        // Add event listener for clicks outside the card to close it
+        document.addEventListener('click', function(event) {
+            const card = document.getElementById('routeInfoCard');
+            const isClickInsideCard = card.contains(event.target);
+            const isClickOnNotesButton = event.target.closest('.notes-button');
+            
+            if (card.classList.contains('visible') && !isClickInsideCard && !isClickOnNotesButton) {
+                hideRouteInfo();
+            }
         });
     </script>
 

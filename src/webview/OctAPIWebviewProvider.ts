@@ -283,7 +283,8 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
             ...route,
             routeId: `${route.method}-${route.fullPath}-${route.file}`, // Unique ID
             isStarred: this.starredRoutes.has(`${route.method}-${route.fullPath}-${route.file}`),
-            note: this.notes.get(`${route.method}-${route.fullPath}-${route.file}`) || null
+            note: this.notes.get(`${route.method}-${route.fullPath}-${route.file}`) || null,
+            relativePath: this.getWorkspaceRelativePath(route.file || '')
         }));
 
         const html = this.getHtmlContent(processedRoutes);
@@ -309,6 +310,23 @@ export default class OctAPIWebviewProvider implements vscode.WebviewViewProvider
             );
         }
     }
+
+    private getWorkspaceRelativePath(absolutePath: string): string {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) return path.basename(absolutePath);
+      
+        // Normalize paths for comparison
+        const normalizedAbsolute = absolutePath.replace(/\\/g, '/');
+        
+        for (const folder of workspaceFolders) {
+          const folderPath = folder.uri.fsPath.replace(/\\/g, '/');
+          if (normalizedAbsolute.startsWith(folderPath)) {
+            return normalizedAbsolute.slice(folderPath.length + 1);
+          }
+        }
+      
+        return path.basename(absolutePath);
+      }
 
     // Get the HTML content for the routes
     private getHtmlContent(routes: Route[]): string {
