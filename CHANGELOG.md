@@ -2,6 +2,10 @@
 
 All notable changes to the "OctAPI" extension will be documented in this file.
 
+## [0.7.1] - 2025-05-12  
+### Fixed  
+- **File Matching Bug**: Fixed an issue where root-level files were unintentionally excluded during file scanning.
+
 ## [0.7.0] - 2025-04-22 
 ### Added  
 - **Route Info Panel**: Introduced a toggleable info card for each route, showing details like method, path, and relative file location.  

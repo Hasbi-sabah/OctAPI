@@ -97,6 +97,9 @@ You can install OctAPI from the following sources:
 
 ## Release Notes
 
+### v0.7.1 - 2025-05-12  
+- **File Matching Fix**: Resolved an issue that caused root-level files to be skipped during scanning.
+
 ### v0.7.0 - 2025-04-22  
 - **Route Info Panel**: Added a toggleable panel to view detailed route information.  
 - **Persistent Notes**: Users can now add, edit, and delete notes for each route, stored persistently.  
@@ -112,9 +115,6 @@ You can install OctAPI from the following sources:
 
 ### v0.5.3 - 2025-03-23
 - **Fixes in Grouping & Copying**: Resolved an issue where grouping by basepath displayed the full path instead of just the path. Copying a route now correctly includes the full path.  
-
-### v0.5.2 - 2025-03-21  
-- **Optimized File Scanning**: Improved performance by scanning only relevant files, reducing unnecessary processing.
 
 ---
 
