@@ -3,11 +3,10 @@ import * as vscode from "vscode"
 import { frameworks } from "./frameworks";
 import { Route } from "../types";
 
-export async function getFilesRecursively(directoryUri: vscode.Uri, frameworkPatterns: string[]): Promise<vscode.Uri[]> {
+export async function getFilesRecursively(directoryUri: vscode.Uri, frameworkPatterns: string[], extensions: string[]): Promise<vscode.Uri[]> {
     const fileUris: vscode.Uri[] = [];
     const directoryUris: vscode.Uri[] = [];
     const blockedDirs = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '__tests__', '__mocks__']);
-    const blockedFileExtensions = new Set(['.md', '.txt', '.json', '.lock', '.log', '.map', '.png', '.jpg']);
 
     try {
         const entries = await vscode.workspace.fs.readDirectory(directoryUri);
@@ -35,16 +34,15 @@ export async function getFilesRecursively(directoryUri: vscode.Uri, frameworkPat
                 const matchesFrameworkPattern = frameworkPatterns
                 ? frameworkPatterns.some(pattern => new RegExp(pattern.replace(/\*/g, '.*')).test(relativePath))
                 : true;
+
                 // Skip non-source files and common configs
                 if (matchesFrameworkPattern &&
-                    !blockedFileExtensions.has(ext) &&
+                    extensions.includes(ext) &&
                     !name.startsWith('.') && // Skip dotfiles
                     !name.endsWith('.d.ts') && // Skip TypeScript declaration files
-                    !name.endsWith('.min.js') && // Skip minified files
-                    name !== 'package-lock.json' &&
-                    name !== 'yarn.lock' &&
-                    name !== '.env'
+                    !name.endsWith('.min.js') // Skip minified JS files
                 ) {
+                    console.log(`Found file: ${filePath}`);
                     fileUris.push(fileUri);
                 }
             }
@@ -54,7 +52,7 @@ export async function getFilesRecursively(directoryUri: vscode.Uri, frameworkPat
         while (directoryUris.length > 0) {
             const batch = directoryUris.splice(0, 10); // Process 10 dirs at a time
             const results = await Promise.all(
-                batch.map(dir => getFilesRecursively(dir, frameworkPatterns))
+                batch.map(dir => getFilesRecursively(dir, frameworkPatterns, extensions))
             );
             fileUris.push(...results.flat());
         }
@@ -95,7 +93,7 @@ export async function getFrameworkFiles(frameworkName: string) {
         }
 
         const directoryUri = vscode.Uri.joinPath(workspaceFolder.uri, routePath);
-        const files = await getFilesRecursively(directoryUri, framework.includePatterns);
+        const files = await getFilesRecursively(directoryUri, framework.includePatterns, framework.extensions);
         return files.filter(uri =>
             uri && uri.fsPath && // Add null check
             framework.extensions.includes(path.extname(uri.fsPath).toLowerCase())
