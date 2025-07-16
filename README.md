@@ -97,6 +97,9 @@ You can install OctAPI from the following sources:
 
 ## Release Notes
 
+### v0.7.2 - 2025-07-16  
+- **Feedback Request Logic**: Introduced basic session tracking to prompt users for feedback after extended usage.
+
 ### v0.7.1 - 2025-05-12  
 - **File Matching Fix**: Resolved an issue that caused root-level files to be skipped during scanning.
 
@@ -112,9 +115,6 @@ You can install OctAPI from the following sources:
 ### v0.5.4 - 2025-03-24
 - **Unified Path Handling**: Standardized route formatting across frameworks for consistency. 
 - **Initial Render Infinite Loading**: Fixed an issue causing an infinite loading screen on first render.
-
-### v0.5.3 - 2025-03-23
-- **Fixes in Grouping & Copying**: Resolved an issue where grouping by basepath displayed the full path instead of just the path. Copying a route now correctly includes the full path.  
 
 ---
 

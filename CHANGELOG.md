@@ -2,6 +2,10 @@
 
 All notable changes to the "OctAPI" extension will be documented in this file.
 
+## [0.7.2] - 2025-07-16  
+### Added  
+- **Feedback Prompt System**: Introduced minimal session tracking to prompt users for feedback after sufficient usage time, with options to opt out or be reminded later.
+
 ## [0.7.1] - 2025-05-12  
 ### Fixed  
 - **File Matching Bug**: Fixed an issue where root-level files were unintentionally excluded during file scanning.
