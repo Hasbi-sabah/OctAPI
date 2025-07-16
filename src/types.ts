@@ -18,3 +18,9 @@ export interface Framework {
     extensions: string[];
     includePatterns: string[];
 }
+
+export interface FeedbackState{
+    optedOut: boolean;
+    lastFeedback: number;
+    totalActiveMinutes: number; 
+}
